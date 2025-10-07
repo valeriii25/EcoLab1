@@ -18,6 +18,7 @@
  */
 
 
+/* Eco OS */
 #include "IEcoSystem1.h"
 #include "IdEcoMemoryManager1.h"
 #include "IdEcoInterfaceBus1.h"
@@ -26,7 +27,27 @@
 #include <stdio.h>
 
 int16_t ECOCALLMETHOD compare_int(const void* a, const void* b) {
-    return (*(int*)a - *(int*)b);
+    if (*(int*)a > *(int*)b) return 1;
+    if (*(int*)a < *(int*)b) return -1;
+    return 0;
+}
+
+int16_t ECOCALLMETHOD compare_float(const void* a, const void* b) {
+    if (*(float*)a > *(float*)b) return 1;
+    if (*(float*)a < *(float*)b) return -1;
+    return 0;
+}
+
+int16_t ECOCALLMETHOD compare_double(const void* a, const void* b) {
+    if (*(double*)a > *(double*)b) return 1;
+    if (*(double*)a < *(double*)b) return -1;
+    return 0;
+}
+
+int16_t ECOCALLMETHOD compare_long_double(const void* a, const void* b) {
+    if (*(long double*)a > *(long double*)b) return 1;
+    if (*(long double*)a < *(long double*)b) return -1;
+    return 0;
 }
 
 /*
@@ -50,10 +71,19 @@ int16_t EcoMain(IEcoUnknown* pIUnk) {
     IEcoMemoryAllocator1* pIMem = 0;
     /* Указатель на тестируемый интерфейс */
     IEcoLab1* pIEcoLab1 = 0;
-
-    int arr[] = {64, -34, 25, -12, 22, 0, 11, 90};
-    int n = sizeof(arr)/sizeof(arr[0]);
     int i;
+
+	int arr_int[] = {64, -34, 25, -12, 22, 11, 90};
+    int n_int = sizeof(arr_int)/sizeof(arr_int[0]);
+
+	float arr_float[] = {90.7, 80.6, 60.5, 50.4, 40.3, -30.2, -20.1};
+    int n_float = sizeof(arr_float)/sizeof(arr_float[0]);
+
+	double arr_double[] = {11.1, 12.2, 22.3, 25.4, 34.5, 64.6, 90.7};
+    int n_double = sizeof(arr_double)/sizeof(arr_double[0]);
+
+	long double arr_ld[] = {-10.1, 20.2, -30.3, 20.2, -10.1, 0.0, 40.4};
+    int n_ld = sizeof(arr_ld)/sizeof(arr_ld[0]);
 
     /* Проверка и создание системного интрефейса */
     if (pISys == 0) {
@@ -94,19 +124,47 @@ int16_t EcoMain(IEcoUnknown* pIUnk) {
         goto Release;
     }
 
-    printf("Unsorted array: \n");
-    for (i=0; i < n; i++) {
-        printf("%d ", arr[i]);
-    }
+    /* Test 1: Integer array */
+    printf("Test 1: Integer array\n");
+    printf("Unsorted array: ");
+    for (i=0; i < n_int; i++) printf("%d ", arr_int[i]);
     printf("\n");
+    pIEcoLab1->pVTbl->SelectionSort(pIEcoLab1, arr_int, n_int, sizeof(int), compare_int);
+    printf("Sorted array:   ");
+    for (i=0; i < n_int; i++) printf("%d ", arr_int[i]);
+    printf("\n\n");
 
-    result = pIEcoLab1->pVTbl->SelectionSort(pIEcoLab1, arr, n, sizeof(int), compare_int);
-
-    printf("Sorted array: \n");
-    for (i=0; i < n; i++) {
-        printf("%d ", arr[i]);
-    }
+    /* Test 2: Float array - reverse sorted */
+    printf("Test 2: Float array (reverse sorted)\n");
+    printf("Unsorted array: ");
+    for (i=0; i < n_float; i++) printf("%.2f ", arr_float[i]);
     printf("\n");
+    pIEcoLab1->pVTbl->SelectionSort(pIEcoLab1, arr_float, n_float, sizeof(float), compare_float);
+    printf("Sorted array:   ");
+    for (i=0; i < n_float; i++) printf("%.2f ", arr_float[i]);
+    printf("\n\n");
+
+    /* Test 3: Double array - already sorted */
+    printf("Test 3: Double array (already sorted)\n");
+    printf("Unsorted array: ");
+    for (i=0; i < n_double; i++) printf("%.2lf ", arr_double[i]);
+    printf("\n");
+    pIEcoLab1->pVTbl->SelectionSort(pIEcoLab1, arr_double, n_double, sizeof(double), compare_double);
+    printf("Sorted array:   ");
+    for (i=0; i < n_double; i++) printf("%.2lf ", arr_double[i]);
+    printf("\n\n");
+
+    /* Test 4: Long Double array - with duplicates */
+    printf("Test 4: Long Double array (with duplicates)\n");
+    printf("Unsorted array: ");
+    for (i=0; i < n_ld; i++) printf("%.2Lf ", arr_ld[i]);
+    printf("\n");
+    pIEcoLab1->pVTbl->SelectionSort(pIEcoLab1, arr_ld, n_ld, sizeof(long double), compare_long_double);
+    printf("Sorted array:   ");
+    for (i=0; i < n_ld; i++) printf("%.2Lf ", arr_ld[i]);
+    printf("\n\n");
+
+	printf("Enter any symbol and press \"ENTER\"");
 	getchar();
 
 Release:
@@ -134,4 +192,3 @@ Release:
 
     return result;
 }
-
