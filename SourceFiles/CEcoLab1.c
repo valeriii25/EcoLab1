@@ -157,8 +157,9 @@ static int16_t ECOCALLMETHOD CEcoLab1_MyFunction(/* in */ IEcoLab1Ptr_t me, /* i
  *
  */
 void swap(void *a, void *b, size_t size) {
-    char *p = a, *q = b, tmp;
-    for (size_t i = 0; i < size; ++i) {
+    char *p = (char*)a, *q = (char*)b, tmp;
+	size_t i;
+    for (i = 0; i < size; ++i) {
         tmp = p[i];
         p[i] = q[i];
         q[i] = tmp;

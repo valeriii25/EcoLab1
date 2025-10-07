@@ -51,7 +51,7 @@ int16_t EcoMain(IEcoUnknown* pIUnk) {
     /* Указатель на тестируемый интерфейс */
     IEcoLab1* pIEcoLab1 = 0;
 
-    int arr[] = {64, 34, 25, 12, 22, 11, 90};
+    int arr[] = {64, -34, 25, -12, 22, 0, 11, 90};
     int n = sizeof(arr)/sizeof(arr[0]);
     int i;
 
@@ -107,6 +107,7 @@ int16_t EcoMain(IEcoUnknown* pIUnk) {
         printf("%d ", arr[i]);
     }
     printf("\n");
+	getchar();
 
 Release:
 
