@@ -25,6 +25,12 @@
 #include "IdEcoFileSystemManagement1.h"
 #include "IdEcoLab1.h"
 #include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
+
+int __cdecl comp_int_std(const void* a, const void* b) {
+    return (*(int*)a - *(int*)b);
+}
 
 int16_t ECOCALLMETHOD compare_int(const void* a, const void* b) {
     if (*(int*)a > *(int*)b) return 1;
@@ -48,6 +54,53 @@ int16_t ECOCALLMETHOD compare_long_double(const void* a, const void* b) {
     if (*(long double*)a > *(long double*)b) return 1;
     if (*(long double*)a < *(long double*)b) return -1;
     return 0;
+}
+
+void run_performance_tests(IEcoLab1* pIEcoLab1, IEcoMemoryAllocator1* pIMem) {
+    int sizes[] = {1000, 5000, 10000, 20000};
+    int n_sizes = sizeof(sizes)/sizeof(sizes[0]);
+    int i, j;
+
+    srand(time(0));
+
+    printf("Performance Comparison\n");
+
+    for (i = 0; i < n_sizes; i++) {
+		clock_t start_time, end_time;
+        double cpu_time_used;
+        int size = sizes[i];
+        int* arr1 = (int*)pIMem->pVTbl->Alloc(pIMem, size * sizeof(int));
+        int* arr2 = (int*)pIMem->pVTbl->Alloc(pIMem, size * sizeof(int));
+
+        if (arr1 == 0 || arr2 == 0) {
+            printf("Memory allocation failed for size %d\n", size);
+            if(arr1) pIMem->pVTbl->Free(pIMem, arr1);
+            if(arr2) pIMem->pVTbl->Free(pIMem, arr2);
+            continue;
+        }
+
+        for (j = 0; j < size; j++) {
+            arr1[j] = rand() % 20001 - 10000;
+            arr2[j] = arr1[j];
+        }
+
+        start_time = clock();
+        pIEcoLab1->pVTbl->SelectionSort(pIEcoLab1, arr1, size, sizeof(int), compare_int);
+        end_time = clock();
+        cpu_time_used = ((double) (end_time - start_time)) / CLOCKS_PER_SEC * 1000.0;
+        printf("Array size: %d\n", size);
+        printf("  My SelectionSort time: %.2f ms\n", cpu_time_used);
+
+        start_time = clock();
+        qsort(arr2, size, sizeof(int), comp_int_std);
+        end_time = clock();
+        cpu_time_used = ((double) (end_time - start_time)) / CLOCKS_PER_SEC * 1000.0;
+        printf("  Standard qsort time:   %.2f ms\n", cpu_time_used);
+        printf("\n");
+
+        pIMem->pVTbl->Free(pIMem, arr1);
+        pIMem->pVTbl->Free(pIMem, arr2);
+    }
 }
 
 /*
@@ -76,7 +129,7 @@ int16_t EcoMain(IEcoUnknown* pIUnk) {
 	int arr_int[] = {64, -34, 25, -12, 22, 11, 90};
     int n_int = sizeof(arr_int)/sizeof(arr_int[0]);
 
-	float arr_float[] = {90.7, 80.6, 60.5, 50.4, 40.3, -30.2, -20.1};
+	float arr_float[] = {90.7, 80.6, 60.5, 50.4, 40.3, 30.2, 20.1};
     int n_float = sizeof(arr_float)/sizeof(arr_float[0]);
 
 	double arr_double[] = {11.1, 12.2, 22.3, 25.4, 34.5, 64.6, 90.7};
@@ -89,7 +142,7 @@ int16_t EcoMain(IEcoUnknown* pIUnk) {
     if (pISys == 0) {
         result = pIUnk->pVTbl->QueryInterface(pIUnk, &GID_IEcoSystem, (void **)&pISys);
         if (result != 0 && pISys == 0) {
-        /* Освобождение системного интерфейса в случае ошибки */
+			/* Освобождение системного интерфейса в случае ошибки */
             goto Release;
         }
     }
@@ -98,35 +151,33 @@ int16_t EcoMain(IEcoUnknown* pIUnk) {
     result = pISys->pVTbl->QueryInterface(pISys, &IID_IEcoInterfaceBus1, (void **)&pIBus);
     if (result != 0 || pIBus == 0) {
         /* Освобождение в случае ошибки */
-        goto Release;
+		goto Release;
     }
 #ifdef ECO_LIB
-    /* Регистрация статического компонента для работы со списком */
+	/* Регистрация статического компонента для работы со списком */
     result = pIBus->pVTbl->RegisterComponent(pIBus, &CID_EcoLab1, (IEcoUnknown*)GetIEcoComponentFactoryPtr_1F5DF16EE1BF43B999A434ED38FE8F3A);
     if (result != 0 ) {
-        /* Освобождение в случае ошибки */
+		/* Освобождение в случае ошибки */
         goto Release;
     }
 #endif
-    /* Получение интерфейса управления памятью */
+	/* Получение интерфейса управления памятью */
     result = pIBus->pVTbl->QueryComponent(pIBus, &CID_EcoMemoryManager1, 0, &IID_IEcoMemoryAllocator1, (void**) &pIMem);
-
     /* Проверка */
-    if (result != 0 || pIMem == 0) {
-        /* Освобождение системного интерфейса в случае ошибки */
+	if (result != 0 || pIMem == 0) {
+		/* Освобождение системного интерфейса в случае ошибки */
         goto Release;
     }
 
-    /* Получение тестируемого интерфейса */
+	/* Получение тестируемого интерфейса */
     result = pIBus->pVTbl->QueryComponent(pIBus, &CID_EcoLab1, 0, &IID_IEcoLab1, (void**) &pIEcoLab1);
     if (result != 0 || pIEcoLab1 == 0) {
-        /* Освобождение интерфейсов в случае ошибки */
+		/* Освобождение интерфейсов в случае ошибки */
         goto Release;
     }
 
-    /* Test 1: Integer array */
     printf("Test 1: Integer array\n");
-    printf("Unsorted array: ");
+    printf("Initial array: ");
     for (i=0; i < n_int; i++) printf("%d ", arr_int[i]);
     printf("\n");
     pIEcoLab1->pVTbl->SelectionSort(pIEcoLab1, arr_int, n_int, sizeof(int), compare_int);
@@ -134,9 +185,8 @@ int16_t EcoMain(IEcoUnknown* pIUnk) {
     for (i=0; i < n_int; i++) printf("%d ", arr_int[i]);
     printf("\n\n");
 
-    /* Test 2: Float array - reverse sorted */
     printf("Test 2: Float array (reverse sorted)\n");
-    printf("Unsorted array: ");
+    printf("Initial array: ");
     for (i=0; i < n_float; i++) printf("%.2f ", arr_float[i]);
     printf("\n");
     pIEcoLab1->pVTbl->SelectionSort(pIEcoLab1, arr_float, n_float, sizeof(float), compare_float);
@@ -144,9 +194,8 @@ int16_t EcoMain(IEcoUnknown* pIUnk) {
     for (i=0; i < n_float; i++) printf("%.2f ", arr_float[i]);
     printf("\n\n");
 
-    /* Test 3: Double array - already sorted */
     printf("Test 3: Double array (already sorted)\n");
-    printf("Unsorted array: ");
+    printf("Initial array: ");
     for (i=0; i < n_double; i++) printf("%.2lf ", arr_double[i]);
     printf("\n");
     pIEcoLab1->pVTbl->SelectionSort(pIEcoLab1, arr_double, n_double, sizeof(double), compare_double);
@@ -154,9 +203,8 @@ int16_t EcoMain(IEcoUnknown* pIUnk) {
     for (i=0; i < n_double; i++) printf("%.2lf ", arr_double[i]);
     printf("\n\n");
 
-    /* Test 4: Long Double array - with duplicates */
     printf("Test 4: Long Double array (with duplicates)\n");
-    printf("Unsorted array: ");
+    printf("Initial array: ");
     for (i=0; i < n_ld; i++) printf("%.2Lf ", arr_ld[i]);
     printf("\n");
     pIEcoLab1->pVTbl->SelectionSort(pIEcoLab1, arr_ld, n_ld, sizeof(long double), compare_long_double);
@@ -164,27 +212,28 @@ int16_t EcoMain(IEcoUnknown* pIUnk) {
     for (i=0; i < n_ld; i++) printf("%.2Lf ", arr_ld[i]);
     printf("\n\n");
 
-	printf("Enter any symbol and press \"ENTER\"");
+    run_performance_tests(pIEcoLab1, pIMem);
+
+	printf("Enter any symbol and press \"ENTER\" to end");
 	getchar();
 
 Release:
 
-    /* Освобождение интерфейса для работы с интерфейсной шиной */
+	/* Освобождение интерфейса для работы с интерфейсной шиной */
     if (pIBus != 0) {
         pIBus->pVTbl->Release(pIBus);
     }
 
-    /* Освобождение интерфейса работы с памятью */
+	/* Освобождение интерфейса работы с памятью */
     if (pIMem != 0) {
         pIMem->pVTbl->Release(pIMem);
     }
 
-    /* Освобождение тестируемого интерфейса */
+	/* Освобождение тестируемого интерфейса */
     if (pIEcoLab1 != 0) {
         pIEcoLab1->pVTbl->Release(pIEcoLab1);
     }
-
-
+	
     /* Освобождение системного интерфейса */
     if (pISys != 0) {
         pISys->pVTbl->Release(pISys);
